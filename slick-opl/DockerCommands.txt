@@ -1,0 +1,17 @@
+docker ps -a
+docker container prune
+
+docker ps -q | % { docker stop $_ }
+docker ps -q | % { docker rm $_ }
+
+
+
+docker build -t img-static-site-example .
+docker run -it -d -p 80:80 img-static-site-example
+
+
+New-Item -Name docker-compose.yml
+docker-compose up -d
+
+docker-compose build
+docker-compose up -d
