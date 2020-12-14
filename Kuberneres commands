@@ -1,0 +1,26 @@
+kubectl get pods
+kubectl describe pods
+
+
+Troubleshooting
+
+Get a Proxy setup to access containers:
+kubectl proxy
+
+Get name of the pod:
+export POD_NAME=$(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+echo Name of the Pod: $POD_NAME
+
+Access application:
+curl http://localhost:{port}/api/v1/namespaces/default/pods/$POD_NAME/proxy/
+
+Get Pod's logs:
+kubectl logs $POD_NAME
+
+Get ENVIRONMENT VARIABLES for pod:
+kubectl exec $POD_NAME env
+
+Bash session within the pod's container:
+kubectl exec -ti $POD_NAME bash
+
+
