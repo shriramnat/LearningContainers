@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: dotnetapp
-          image: shriramnat/aspnetapp:PViZUx
+          image: shriramnat/aspnetapp:ORR3II
           ports:
             - containerPort: 80
   

@@ -16,8 +16,8 @@ Docker Commands
     docker-compose build
     docker-compose up -d
 
-    docker tag aspnetapp:latest shriramnat/aspnetapp:tagname
-    docker push shriramnat/aspnetapp:tagname
+    docker tag aspnetapp:latest shriramnat/aspnetapp:v1
+    docker push shriramnat/aspnetapp:v1
 
 Kubernetes Commands
 =========================

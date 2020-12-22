@@ -5,6 +5,8 @@ COPY *.csproj ./
 RUN dotnet restore
 # copy everything else and build
 COPY . ./
+# RUN set ASPNETCORE_ENVIRONMENT=Development
+# RUN dotnet publish -c Debug -o out # -r NetcoreProject
 RUN dotnet publish -c Release -o out
 
 
