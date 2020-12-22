@@ -16,6 +16,9 @@ Docker Commands
     docker-compose build
     docker-compose up -d
 
+    docker tag aspnetapp:latest shriramnat/aspnetapp:tagname
+    docker push shriramnat/aspnetapp:tagname
+
 Kubernetes Commands
 =========================
 
@@ -41,7 +44,7 @@ Kubernetes Commands
 
 ## Troubleshooting
 
-**Get a Proxy setup to access containers:**
+**Get a Proxy setup to access containers**
 
     kubectl proxy
 
@@ -50,19 +53,19 @@ Kubernetes Commands
     export POD_NAME=$(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
     echo Name of the Pod: $POD_NAME
 
-** Access application **
+**Access application**
 
     curl http://localhost:{port}/api/v1/namespaces/default/pods/$POD_NAME/proxy/
 
-** Get Pod's logs  **
+**Get Pod's logs**
 
     kubectl logs $POD_NAME
 
-** Get ENVIRONMENT VARIABLES for pod **
+**Get ENVIRONMENT VARIABLES for pod**
 
     kubectl exec $POD_NAME env
 
-** Bash session within the pod's container**
+**Bash session within the pod's container**
 
     kubectl exec -ti $POD_NAME bash
 
@@ -72,12 +75,13 @@ Kubernetes Commands
     kubectl get services
 
     kubectl expose deployment/kubernetes-bootcamp --type="NodePort" --port 8080
-
+   
     kubectl describe services/kubernetes-bootcamp
 
 
     export NODE_PORT=$(kubectl get services/kubernetes-bootcamp -o go-template='{{(index .spec.ports 0).nodePort}}')
     echo NODE_PORT=$NODE_PORT
+
 
     curl $(minikube ip):$NODE_PORT
 
