@@ -1,0 +1,79 @@
+az account set --subscription c0f2ad01-da0c-4bcd-94bd-6228a2ac88de
+
+RG=EZ-HandsOnLabs03
+az group create -n $RG -l eastus
+
+CLUSTER_NAME=EZ-HOL-aks-03
+az aks create -g $RG -n $CLUSTER_NAME --kubernetes-version 1.20.7 --edge-zone ezecustomerlabboston1 --location eastus --max-pods 110 --generate-ssh-keys
+
+
+# Configure kubectl to connect to your Kubernetes cluster using the az aks get-credentials command. The following command:
+# Downloads credentials and configures the Kubernetes CLI to use them.
+# Uses ~/.kube/config, the default location for the Kubernetes configuration file. Specify a different location for your Kubernetes configuration file using --file.
+
+az aks get-credentials --resource-group $RG --name $CLUSTER_NAME
+
+# Verify the connection to your cluster using the kubectl get command. This command returns a list of the cluster nodes.
+kubectl version
+
+kubectl get nodes
+kubectl get services
+kubectl get rs
+
+code
+
+kubectl apply -f azure-vote.yaml
+
+kubectl get deployments
+kubectl get services
+
+kubectl get service azure-vote-front --watch
+
+az group delete --name $RG --yes --no-wait
+
+
+==========================================================================
+
+
+
+
+az account set --subscription d6c6d17b-23f6-4dcd-bf92-34cd4ec65170
+
+az feature register --name EnableCloudControllerManager --namespace Microsoft.ContainerService
+az provider register -n Microsoft.ContainerService
+
+az feature register --name AzureEdgeZone --namespace Microsoft.Resources
+az feature register --name internalazureedgezones --namespace Microsoft.Resources
+
+az provider register -n Microsoft.Resources
+
+RG=EZ-HandsOnLabs01
+az group create -n $RG -l southcentralus
+
+CLUSTER_NAME=EZ-HOL-aks-01
+az aks create -g $RG -n $CLUSTER_NAME --kubernetes-version 1.20.7 --edge-zone ezecustomerlabhouston1 --location southcentralus --max-pods 110 --generate-ssh-keys
+
+
+# Configure kubectl to connect to your Kubernetes cluster using the az aks get-credentials command. The following command:
+# Downloads credentials and configures the Kubernetes CLI to use them.
+# Uses ~/.kube/config, the default location for the Kubernetes configuration file. Specify a different location for your Kubernetes configuration file using --file.
+
+az aks get-credentials --resource-group $RG --name $CLUSTER_NAME
+
+# Verify the connection to your cluster using the kubectl get command. This command returns a list of the cluster nodes.
+kubectl version
+
+kubectl get nodes
+kubectl get services
+kubectl get rs
+
+code
+
+kubectl apply -f azure-vote.yaml
+
+kubectl get deployments
+kubectl get services
+
+kubectl get service azure-vote-front --watch
+
+az group delete --name $RG --yes --no-wait
