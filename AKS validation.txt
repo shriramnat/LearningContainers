@@ -1,17 +1,69 @@
 az account set --subscription c0f2ad01-da0c-4bcd-94bd-6228a2ac88de
 
-RG=EZ-HandsOnLabs03
+RG=EZ-vnetpeeringtestRG02
+VM1_NAME=testvm005
+VNET1_NAME=peernet005
+K8SCLUSTER1_NAME=EZ-peertest-005
+K8SCLUSTER2_NAME=EZ-peertest-006
+
+# Create Resource Group
 az group create -n $RG -l eastus
 
-CLUSTER_NAME=EZ-HOL-aks-03
-az aks create -g $RG -n $CLUSTER_NAME --kubernetes-version 1.20.7 --edge-zone ezecustomerlabboston1 --location eastus --max-pods 110 --generate-ssh-keys
+# Create a VNet
+az network vnet create --name $VNET1_NAME --resource-group $RG --edge-zone ezecustomerlabboston1 \
+    --address-prefixes 172.16.0.0/12 \
+    --subnet-name default --subnet-prefixes 172.16.0.0/24
+
+# Create a VM on that VNet
+az vm create --resource-group $RG --name $VM1_NAME --image UbuntuLTS --edge-zone ezecustomerlabboston1 --generate-ssh-keys --public-ip-address myPublicIP-$VM1_NAME --no-wait
+VM1_IP=$(az network public-ip show --resource-group $RG --name myPublicIP-$VM1_NAME --query ipAddress --output tsv)
+
+# Create a K8S cluster - This will create a separate vNet as a part of the creation proces
+az aks create -g $RG -n $K8SCLUSTER2_NAME --kubernetes-version 1.20.7 --edge-zone ezecustomerlabboston1 --location eastus --max-pods 110 --generate-ssh-keys
+
+# Set up Peering between these two vnets
+
+# Deploy the site with the private IP address
+az aks get-credentials --resource-group $RG --name $K8SCLUSTER2_NAME
+code
+
+kubectl apply -f azure-vote.yaml
+
+kubectl get deployments
+kubectl get services
+
+kubectl get service azure-vote-front --watch
+CTR_FRONTEND_IP=kubectl get service azure-vote-front -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+
+# ssh into the VM and curl/wget the website
+echo $CTR_FRONTEND_IP
+ssh $VM1_IP "wget $CTR_FRONTEND_IP -q -O -"
 
 
-# Configure kubectl to connect to your Kubernetes cluster using the az aks get-credentials command. The following command:
-# Downloads credentials and configures the Kubernetes CLI to use them.
-# Uses ~/.kube/config, the default location for the Kubernetes configuration file. Specify a different location for your Kubernetes configuration file using --file.
+# Create a Second subnet in the Vnet to deploy the AKS cluster
+az network vnet subnet create --name aksvnet --vnet-name $VNET1_NAME --resource-group $RG --address-prefixes 172.17.0.0/16
+VNET1_AKS_SUBNET_ID=$(az network vnet subnet show --name aksvnet --vnet-name $VNET1_NAME --resource-group $RG --query id --output tsv)
 
-az aks get-credentials --resource-group $RG --name $CLUSTER_NAME
+# Create an Identity in the Subscription
+az identity create --name myIdentity --resource-group $RG
+IDENTITY_ID=$(az identity show --name myIdentity --resource-group $RG --query id --output tsv)
+
+# Create a second AKS cluster using the created Second subNet
+az aks create -g $RG -n $K8SCLUSTER1_NAME --kubernetes-version 1.20.7 --edge-zone ezecustomerlabboston1 --location eastus \
+    --vnet-subnet-id $VNET1_AKS_SUBNET_ID --network-plugin kubenet \
+     --network-plugin kubenet \
+    --max-pods 110 --generate-ssh-keys --assign-identity $IDENTITY_ID \
+    --service-cidr 172.18.1.0/24 --dns-service-ip 172.18.1.10 --pod-cidr 172.19.0.0/16  --docker-bridge-address 172.18.0.1/16
+
+# Login to the second AKS cluster
+az aks get-credentials --resource-group $RG --name $K8SCLUSTER1_NAME
+
+#YOU NEED A POD TO DO THIS - maybe deploy an nginx server
+kubectl exec $(kubectl get pods -o jsonpath='{.items[0].metadata.name}') -- /bin/sh -c "curl http://10.240.0.8"
+
+
+===
+
 
 # Verify the connection to your cluster using the kubectl get command. This command returns a list of the cluster nodes.
 kubectl version
@@ -29,51 +81,21 @@ kubectl get services
 
 kubectl get service azure-vote-front --watch
 
-az group delete --name $RG --yes --no-wait
-
-
-==========================================================================
-
-
-
-
-az account set --subscription d6c6d17b-23f6-4dcd-bf92-34cd4ec65170
-
-az feature register --name EnableCloudControllerManager --namespace Microsoft.ContainerService
-az provider register -n Microsoft.ContainerService
-
-az feature register --name AzureEdgeZone --namespace Microsoft.Resources
-az feature register --name internalazureedgezones --namespace Microsoft.Resources
-
-az provider register -n Microsoft.Resources
-
-RG=EZ-HandsOnLabs01
-az group create -n $RG -l southcentralus
-
-CLUSTER_NAME=EZ-HOL-aks-01
-az aks create -g $RG -n $CLUSTER_NAME --kubernetes-version 1.20.7 --edge-zone ezecustomerlabhouston1 --location southcentralus --max-pods 110 --generate-ssh-keys
-
-
-# Configure kubectl to connect to your Kubernetes cluster using the az aks get-credentials command. The following command:
-# Downloads credentials and configures the Kubernetes CLI to use them.
-# Uses ~/.kube/config, the default location for the Kubernetes configuration file. Specify a different location for your Kubernetes configuration file using --file.
-
-az aks get-credentials --resource-group $RG --name $CLUSTER_NAME
-
-# Verify the connection to your cluster using the kubectl get command. This command returns a list of the cluster nodes.
-kubectl version
-
-kubectl get nodes
-kubectl get services
-kubectl get rs
-
-code
-
-kubectl apply -f azure-vote.yaml
-
-kubectl get deployments
-kubectl get services
-
-kubectl get service azure-vote-front --watch
+kubectl delete --all deployments
+kubectl delete --all services
 
 az group delete --name $RG --yes --no-wait
+
+
+#
+get service azure-vote-front -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+wget 10.240.0.8 -q -O -
+curl http://10.240.0.8
+
+
+
+
+
+
+az identity create --name myIdentity --resource-group $RG
+IDENTITY_ID=$(az identity show --name myIdentity --resource-group $RG --query id --output tsv)
